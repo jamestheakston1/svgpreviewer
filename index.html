@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG Live Previewer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    
+    <!-- FIX: Load Supabase via standard script tag to avoid module/environment issues -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f7fafc;
+        }
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            padding-top: 64px;
+        }
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background-color: #a0aec0;
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background-color: #edf2f7;
+        }
+        #error-message {
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Custom styling for the range slider thumb to allow for smooth JS control */
+        #zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+        #zoom-slider::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border: none;
+            transition: background 0.15s ease, transform 0.15s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="fixed top-0 left-0 right-0 bg-white shadow-lg z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+            <h1 class="text-xl font-extrabold text-indigo-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-2 align-text-bottom text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                </svg>
+                SVG Live Previewer
+            </h1>
+            
+            <!-- Supabase Auth Status -->
+            <div id="auth-status" class="flex items-center space-x-3">
+                <!-- Content injected by JS -->
+            </div>
+        </div>
+    </header>
+
+    <div class="main-content flex flex-col lg:flex-row w-full max-w-7xl mx-auto">
+
+        <div class="w-full lg:w-1/2 p-4 flex flex-col border-b lg:border-r lg:border-b-0 border-gray-200">
+            <h2 class="text-lg font-semibold mb-3 text-gray-700">Paste Your SVG Code Here</h2>
+            
+            <div class="relative flex-grow min-h-[300px]">
+                
+                <textarea id="svg-input"
+                          rows="10"
+                          placeholder='Paste your <svg> block here. E.g., <svg width="100" height="100"><circle cx="50" cy="50" r="40" fill="#3b82f6"/></svg>'
+                          class="w-full h-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 font-mono text-sm shadow-inner resize-none bg-gray-50 absolute inset-0 z-0"
+                          spellcheck="false"></textarea>
+
+                <div id="demo-svg-container" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 transition-opacity duration-500 ease-out z-20 bg-white p-4 shadow-2xl rounded-xl border border-indigo-200 w-11/12 max-w-lg">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-700 text-center">Click a Demo SVG to Load</h3>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        
+                        <button data-svg='<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#34d399" stroke="#059669" stroke-width="5"/></svg>' 
+                                class="demo-card bg-white p-2 rounded-lg border border-gray-300 shadow-md hover:shadow-lg transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <div class="w-full h-16 flex items-center justify-center pointer-events-none">
+                                <svg width="60" height="60" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="45" fill="#34d399" stroke="#059669" stroke-width="5"/></svg>
+                            </div>
+                            <p class="text-xs text-center font-medium text-gray-600 mt-1">Simple Circle</p>
+                        </button>
+                        
+                        <button data-svg='<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 0 L61.8 38.2 L100 38.2 L69.1 61.8 L80.9 100 L50 76.4 L19.1 100 L30.9 61.8 L0 38.2 L38.2 38.2 Z" fill="#fbbf24" stroke="#d97706" stroke-width="3"/></svg>' 
+                                class="demo-card bg-white p-2 rounded-lg border border-gray-300 shadow-md hover:shadow-lg transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <div class="w-full h-16 flex items-center justify-center pointer-events-none">
+                                <svg width="60" height="60" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M50 0 L61.8 38.2 L100 38.2 L69.1 61.8 L80.9 100 L50 76.4 L19.1 100 L30.9 61.8 L0 38.2 L38.2 38.2 Z" fill="#fbbf24" stroke="#d97706" stroke-width="3"/></svg>
+                            </div>
+                            <p class="text-xs text-center font-medium text-gray-600 mt-1">Star Path</p>
+                        </button>
+                        
+                        <button data-svg='<svg width="200" height="50" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg"><text x="10" y="35" font-family="Verdana" font-size="30" fill="#f43f5e">Hello SVG!</text><line x1="10" y1="40" x2="150" y2="40" stroke="#f43f5e" stroke-width="2"/></svg>' 
+                                class="demo-card bg-white p-2 rounded-lg border border-gray-300 shadow-md hover:shadow-lg transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <div class="w-full h-16 flex items-center justify-center pointer-events-none">
+                                <svg width="100" height="30" viewBox="0 0 200 50" xmlns="http://www.w3.org/2000/svg"><text x="10" y="35" font-family="Verdana" font-size="30" fill="#f43f5e">Text</text></svg>
+                            </div>
+                            <p class="text-xs text-center font-medium text-gray-600 mt-1">Example Text</p>
+                        </button>
+                        
+                        <button data-svg='<svg viewBox="0 0 16 11" height="11" width="16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M11.0714 0.652832C10.991 0.585124 10.8894 0.55127 10.7667 0.55127C10.6186 0.55127 10.4916 0.610514 10.3858 0.729004L4.19688 8.36523L1.79112 6.09277C1.7488 6.04622 1.69802 6.01025 1.63877 5.98486C1.57953 5.95947 1.51817 5.94678 1.45469 5.94678C1.32351 5.94678 1.20925 5.99544 1.11192 6.09277L0.800883 6.40381C0.707784 6.49268 0.661235 6.60482 0.661235 6.74023C0.661235 6.87565 0.707784 6.98991 0.800883 7.08301L3.79698 10.0791C3.94509 10.2145 4.11224 10.2822 4.29844 10.2822C4.40424 10.2822 4.5058 10.259 4.60313 10.2124C4.70046 10.1659 4.78086 10.1003 4.84434 10.0156L11.4903 1.59863C11.5623 1.5013 11.5982 1.40186 11.5982 1.30029C11.5982 1.14372 11.5348 1.01888 11.4078 0.925781L11.0714 0.652832ZM8.6212 8.32715C8.43077 8.20866 8.2488 8.09017 8.0753 7.97168C7.99489 7.89128 7.8891 7.85107 7.75791 7.85107C7.6098 7.85107 7.48920 7.90397 7.39610 8.00977L7.10411 8.33984C7.01947 8.43717 6.97715 8.54508 6.97715 8.66357C6.97715 8.79476 7.02370 8.90902 7.11680 9.00635L8.19590 10.0791C8.33132 10.2145 8.49636 10.2822 8.69102 10.2822C8.79681 10.2822 8.89838 10.259 8.99571 10.2124C9.09304 10.1659 9.17556 10.1003 9.24327 10.0156L15.8639 1.62402C15.9358 1.53939 15.9718 1.43994 15.9718 1.32568C15.9718 1.18180 15.9125 1.05697 15.7940 0.951172L15.4386 0.678223C15.3582 0.610514 15.2587 0.576660 15.1402 0.576660C14.9964 0.576660 14.8715 0.635905 14.7657 0.754395L8.62120 8.32715Z" fill="currentColor"/></svg>' 
+                                class="demo-card bg-white p-2 rounded-lg border border-gray-300 shadow-md hover:shadow-lg transition-shadow duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <div class="w-full h-16 flex items-center justify-center pointer-events-none">
+                                <svg width="60" height="40" viewBox="0 0 16 11" fill="#4f46e5" xmlns="http://www.w3.org/2000/svg"><path d="M11.0714 0.652832C10.991 0.585124 10.8894 0.55127 10.7667 0.55127C10.6186 0.55127 10.4916 0.610514 10.3858 0.729004L4.19688 8.36523L1.79112 6.09277C1.7488 6.04622 1.69802 6.01025 1.63877 5.98486C1.57953 5.95947 1.51817 5.94678 1.45469 5.94678C1.32351 5.94678 1.20925 5.99544 1.11192 6.09277L0.800883 6.40381C0.707784 6.49268 0.661235 6.60482 0.661235 6.74023C0.661235 6.87565 0.707784 6.98991 0.800883 7.08301L3.79698 10.0791C3.94509 10.2145 4.11224 10.2822 4.29844 10.2822C4.40424 10.2822 4.5058 10.259 4.60313 10.2124C4.70046 10.1659 4.78086 10.1003 4.84434 10.0156L11.4903 1.59863C11.5623 1.5013 11.5982 1.40186 11.5982 1.30029C11.5982 1.14372 11.5348 1.01888 11.4078 0.925781L11.0714 0.652832ZM8.6212 8.32715C8.43077 8.20866 8.2488 8.09017 8.0753 7.97168C7.99489 7.89128 7.8891 7.85107 7.75791 7.85107C7.6098 7.85107 7.48920 7.90397 7.39610 8.00977L7.10411 8.33984C7.01947 8.43717 6.97715 8.54508 6.97715 8.66357C6.97715 8.79476 7.02370 8.90902 7.11680 9.00635L8.19590 10.0791C8.33132 10.2145 8.49636 10.2822 8.69102 10.2822C8.79681 10.2822 8.89838 10.259 8.99571 10.2124C9.09304 10.1659 9.17556 10.1003 9.24327 10.0156L15.8639 1.62402C15.9358 1.53939 15.9718 1.43994 15.9718 1.32568C15.9718 1.18180 15.9125 1.05697 15.7940 0.951172L15.4386 0.678223C15.3582 0.610514 15.2587 0.576660 15.1402 0.576660C14.9964 0.576660 14.8715 0.635905 14.7657 0.754395L8.62120 8.32715Z" fill="currentColor"/></svg>
+                            </div>
+                            <p class="text-xs text-center font-medium text-gray-600 mt-1">Delivered Check</p>
+                        </button>
+
+                    </div>
+                </div>
+            </div>
+
+            <div id="error-message" class="mt-3 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 rounded-lg opacity-0 pointer-events-none">
+                <p class="font-bold">Invalid SVG Code</p>
+                <p>The code you entered could not be rendered. Please ensure it is valid XML/SVG markup.</p>
+            </div>
+        </div>
+
+        <div class="w-full lg:w-1/2 p-4 flex flex-col">
+            <h2 class="text-lg font-semibold mb-3 text-gray-700">Live Preview</h2>
+            
+            <div class="relative p-3 mb-4 bg-gray-100 rounded-lg shadow-inner"> 
+                
+                <div class="flex justify-end -mt-1 mb-2 relative group">
+                    <!-- Button to open modal -->
+                    <button id="auto-zoom-btn" class="flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition cursor-pointer focus:outline-none" 
+                            title="Open Automatic Zoom Settings">
+                        
+                        <i data-feather="zoom-in" class="w-4 h-4 mr-1 text-indigo-500 group-hover:text-indigo-700 transition"></i>
+                        <span class="hover:underline">Automatically Zoom</span>
+                    </button>
+                    
+                    <!-- Custom Tooltip for Status -->
+                    <div id="zoom-status-tooltip" class="absolute right-0 top-full mt-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs p-2 rounded-lg shadow-xl z-20 opacity-0 group-hover:opacity-100 transition duration-150 transform translate-y-2 group-hover:translate-y-0">
+                        <p id="tooltip-status-text"></p>
+                        <p class="mt-1 text-gray-300">Click to configure settings.</p>
+                        <div class="absolute w-2 h-2 bg-gray-800 transform rotate-45 -top-1 right-3"></div>
+                    </div>
+                </div>
+                
+                <div id="normal-marker" class="absolute top-3 transform -translate-x-1/2 flex flex-col items-center" style="left: 18%;">
+                    <span class="text-xs font-medium text-gray-500">Normal</span>
+                    <div class="h-2 w-px bg-gray-400"></div>
+                </div>
+
+                <div class="flex items-center space-x-3 mt-2">
+                    <label for="zoom-slider" class="text-sm font-medium text-gray-700 whitespace-nowrap">Zoom:</label>
+                    <input type="range" id="zoom-slider" min="50" max="1000" value="120" step="1"
+                           class="flex-grow h-2 bg-indigo-200 rounded-lg appearance-none cursor-pointer zoom-slider-state-controlled transition-all duration-300">
+                    
+                    <span id="zoom-value" class="w-12 text-right font-semibold text-indigo-700">120%</span>
+                </div>
+            </div>
+
+            <div class="flex-grow flex items-center justify-center p-6 bg-white border border-gray-300 rounded-lg shadow-xl relative overflow-auto">
+                <div id="svg-preview" class="transition-transform duration-200 ease-out" style="transform-origin: 50% 50%;">
+                </div>
+
+                <div id="placeholder" class="absolute inset-0 flex items-center justify-center bg-gray-50 bg-opacity-70 transition-opacity duration-300">
+                    <p class="text-gray-500 italic p-4 text-center">Your SVG image will appear here once you paste the code.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Automatic Zoom Settings Modal (Hidden by default) -->
+    <div id="settings-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div id="settings-card" class="bg-white rounded-xl shadow-2xl w-full max-w-lg m-4 transform transition-all duration-300 scale-95">
+            
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 id="modal-title" class="text-xl font-bold text-gray-800 flex items-center">
+                    <i data-feather="zoom-in" class="w-6 h-6 mr-2 text-indigo-600"></i>
+                    Automatic Zoom Settings
+                </h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Body Content -->
+            <div class="p-6">
+                
+                <!-- Toggle Control -->
+                <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <label for="auto-zoom-toggle" class="text-base font-semibold text-gray-700">Automatically Zoom</label>
+                    
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="auto-zoom-toggle" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] peer-checked:after:bg-white after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
+                </div>
+
+                <!-- Description -->
+                <div class="mt-6 space-y-4 text-gray-600 text-sm">
+                    <p>This setting controls whether the SVG preview scales automatically to ensure the entire graphic is visible within the preview box, even if its intrinsic dimensions are large or small.</p>
+                    <p>When <strong>enabled</strong>, the zoom level will be calculated based on the SVG's <code>viewBox</code> and the container size, overriding the manual zoom slider. The slider will reflect the calculated zoom percentage.</p>
+                    <p>When <strong>disabled</strong>, the zoom reverts to the manual slider value, allowing you to control the exact scale of the preview.</p>
+                </div>
+                
+            </div>
+            
+            <!-- Footer / Action Button -->
+            <div class="p-4 border-t border-gray-200 flex justify-end">
+                <button id="close-modal-footer-btn" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Supabase Auth Modal (Hidden by default) -->
+    <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+        <div id="auth-card" class="bg-white rounded-xl shadow-2xl w-full max-w-sm m-4 transform transition-all duration-300 scale-95">
+            
+            <!-- Header -->
+            <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 id="auth-modal-title" class="text-xl font-bold text-gray-800 flex items-center">
+                    <i data-feather="user" class="w-6 h-6 mr-2 text-indigo-600"></i>
+                    Sign In / Sign Up
+                </h3>
+                <button id="close-auth-modal-btn" class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <!-- Body Content -->
+            <form id="auth-form" class="p-6 space-y-4">
+                <div class="space-y-1">
+                    <label for="email" class="text-sm font-medium text-gray-700">Email Address</label>
+                    <input type="email" id="email" required placeholder="you@example.com"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div class="space-y-1">
+                    <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" required placeholder="••••••••"
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                
+                <p id="auth-message" class="text-sm h-5 text-red-500"></p>
+
+                <div class="flex space-x-3 pt-2">
+                    <button type="submit" data-action="signin" id="sign-in-btn-modal"
+                            class="flex-1 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150">
+                        Sign In
+                    </button>
+                    <button type="submit" data-action="signup" id="sign-up-btn-modal"
+                            class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-150">
+                        Sign Up
+                    </button>
+                </div>
+            </form>
+            
+        </div>
+    </div>
+
+
+    <script>
+        // --- Supabase Setup ---
+        // Accessing createClient from the global window.supabase object now that the library is loaded via standard script tag
+        if (!window.supabase) {
+            console.error("Supabase library not loaded. Check the CDN script tag.");
+        }
+        
+        const createClient = window.supabase.createClient; 
+        
+        const SUPABASE_URL = 'https://vyknxlkbmzivfrojnwwe.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5a254bGtibXppdmZyb2pud3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNzkxNTMsImV4cCI6MjA4MDk1NTE1M30.WhqSyYCUEtSxrgVFI52J_QIlV92nuGMkGGbafX-B3vI';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- DOM Elements ---
+        const input = document.getElementById('svg-input');
+        const preview = document.getElementById('svg-preview');
+        const placeholder = document.getElementById('placeholder');
+        const errorMessage = document.getElementById('error-message');
+        const demoContainer = document.getElementById('demo-svg-container'); 
+        
+        const zoomSlider = document.getElementById('zoom-slider');
+        const zoomValue = document.getElementById('zoom-value');
+        
+        // Settings Modal
+        const settingsModal = document.getElementById('settings-modal');
+        const settingsCard = document.getElementById('settings-card');
+        const autoZoomBtn = document.getElementById('auto-zoom-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const closeModalFooterBtn = document.getElementById('close-modal-footer-btn');
+        const autoZoomToggle = document.getElementById('auto-zoom-toggle');
+        const tooltipStatusText = document.getElementById('tooltip-status-text');
+
+        // Auth Modal Elements
+        const authStatus = document.getElementById('auth-status');
+        const authModal = document.getElementById('auth-modal');
+        const closeAuthModalBtn = document.getElementById('close-auth-modal-btn');
+        const authForm = document.getElementById('auth-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const authMessage = document.getElementById('auth-message');
+        
+        const DEFAULT_ZOOM = 120;
+        let isSigningIn = false;
+
+        // --- Utility Functions ---
+
+        function showAuthMessage(message, isError = false) {
+            authMessage.textContent = message;
+            authMessage.className = isError ? 'text-sm h-5 text-red-500' : 'text-sm h-5 text-green-500';
+        }
+
+        function openAuthModal() {
+            authModal.classList.remove('opacity-0', 'pointer-events-none');
+            authMessage.textContent = ''; // Clear previous messages
+            emailInput.value = '';
+            passwordInput.value = '';
+        }
+
+        function closeAuthModal() {
+            authModal.classList.add('opacity-0', 'pointer-events-none');
+        }
+
+        // --- Supabase Auth Functions ---
+
+        async function handleAuthFormSubmit(event) {
+            event.preventDefault();
+            if (isSigningIn) return;
+
+            const action = event.submitter.getAttribute('data-action');
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            
+            if (!email || !password) {
+                showAuthMessage("Please enter both email and password.", true);
+                return;
+            }
+
+            isSigningIn = true;
+            showAuthMessage("Processing...", false);
+
+            try {
+                let response;
+                if (action === 'signup') {
+                    response = await supabase.auth.signUp({ email, password });
+                    if (response.error) throw response.error;
+                    showAuthMessage("Check your email for the confirmation link!", false);
+                } else if (action === 'signin') {
+                    response = await supabase.auth.signInWithPassword({ email, password });
+                    if (response.error) throw response.error;
+                    closeAuthModal();
+                }
+
+            } catch (error) {
+                showAuthMessage(error.message, true);
+            } finally {
+                isSigningIn = false;
+            }
+        }
+        
+        async function handleSignOut() {
+            try {
+                const { error } = await supabase.auth.signOut();
+                if (error) throw error;
+            } catch (error) {
+                console.error("Sign Out Error:", error.message);
+                // In a real app, you might show a persistent error message here
+            }
+        }
+
+        function updateAuthUI(user) {
+            authStatus.innerHTML = ''; // Clear existing content
+
+            if (user) {
+                // User is signed in
+                const email = user.email || 'User';
+                
+                // User Info Display
+                const userInfo = document.createElement('span');
+                userInfo.className = 'text-sm font-medium text-gray-600 truncate max-w-xs sm:max-w-none';
+                userInfo.textContent = `Signed in as: ${email}`;
+
+                // Sign Out Button
+                const signOutBtn = document.createElement('button');
+                signOutBtn.className = 'flex items-center px-3 py-1 bg-red-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2';
+                signOutBtn.innerHTML = '<i data-feather="log-out" class="w-4 h-4 mr-1"></i>Sign Out';
+                signOutBtn.addEventListener('click', handleSignOut);
+
+                authStatus.appendChild(userInfo);
+                authStatus.appendChild(signOutBtn);
+                
+            } else {
+                // User is signed out
+                const signInBtn = document.createElement('button');
+                signInBtn.className = 'flex items-center px-3 py-1 bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
+                signInBtn.innerHTML = '<i data-feather="log-in" class="w-4 h-4 mr-1"></i>Sign In';
+                signInBtn.addEventListener('click', openAuthModal);
+
+                authStatus.appendChild(signInBtn);
+            }
+
+            // Re-render Feather icons in the newly created elements
+            feather.replace();
+        }
+
+        // --- Animation Utility ---
+        
+        function setZoomValueAnimated(targetZoom) {
+            targetZoom = Math.min(1000, Math.max(50, Math.round(targetZoom)));
+
+            let currentZoom = parseFloat(zoomSlider.value);
+            const duration = 300;
+            const startTime = performance.now();
+
+            function step(timestamp) {
+                const elapsed = timestamp - startTime;
+                const progress = Math.min(1, elapsed / duration);
+                
+                const easedProgress = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                
+                const newZoom = currentZoom + (targetZoom - currentZoom) * easedProgress;
+                
+                zoomSlider.value = newZoom;
+                applyZoom();
+
+                if (progress < 1) {
+                    requestAnimationFrame(step);
+                } else {
+                    zoomSlider.value = targetZoom;
+                    applyZoom();
+                }
+            }
+            requestAnimationFrame(step);
+        }
+
+        // --- Settings Modal Functions ---
+        
+        function openSettingsModal() {
+            if (!settingsModal || !settingsCard) return;
+            
+            settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+            settingsCard.classList.remove('scale-95');
+        }
+
+        function closeSettingsModal() {
+            if (!settingsModal || !settingsCard) return;
+            
+            settingsModal.classList.add('opacity-0', 'pointer-events-none');
+            settingsCard.classList.add('scale-95');
+        }
+
+        function handleToggle() {
+            const isChecked = autoZoomToggle.checked;
+            
+            tooltipStatusText.innerHTML = `Auto Zoom is <strong>${isChecked ? 'ON' : 'OFF'}</strong>.`;
+
+            if (isChecked) {
+                zoomSlider.classList.add('opacity-50', 'cursor-not-allowed');
+                calculateAutoZoom();
+            } else {
+                zoomSlider.classList.remove('opacity-50', 'cursor-not-allowed');
+                applyZoom(); 
+            }
+        }
+        
+        // --- Core Preview Functions ---
+        
+        function calculateAutoZoom() {
+            if (!autoZoomToggle.checked) return;
+
+            const svgElement = preview.querySelector('svg');
+            const previewContainer = preview.parentElement;
+
+            if (!svgElement) {
+                setZoomValueAnimated(DEFAULT_ZOOM);
+                return;
+            }
+
+            const containerWidth = previewContainer.clientWidth - 48;
+            const containerHeight = previewContainer.clientHeight - 48;
+            
+            let svgWidth, svgHeight;
+            
+            const viewBox = svgElement.getAttribute('viewBox');
+            if (viewBox) {
+                const parts = viewBox.split(/\s+|,/g).map(Number).filter(n => !isNaN(n));
+                if (parts.length === 4) {
+                    svgWidth = parts[2];
+                    svgHeight = parts[3];
+                }
+            }
+
+            if (!svgWidth || !svgHeight || svgWidth === 0 || svgHeight === 0) {
+                svgWidth = parseFloat(svgElement.getAttribute('width')) || 100;
+                svgHeight = parseFloat(svgElement.getAttribute('height')) || 100;
+                
+                if (svgWidth <= 0 || svgHeight <= 0) {
+                    setZoomValueAnimated(DEFAULT_ZOOM);
+                    return;
+                }
+            }
+            
+            const widthRatio = containerWidth / svgWidth;
+            const heightRatio = containerHeight / svgHeight;
+
+            const fitRatio = Math.min(widthRatio, heightRatio);
+
+            let targetZoom = fitRatio * 100 * 0.95; 
+            targetZoom = Math.min(1000, Math.max(50, targetZoom));
+
+            setZoomValueAnimated(targetZoom);
+        }
+
+
+        function applyZoom() {
+            const zoomPercentage = zoomSlider.value;
+            const scaleFactor = zoomPercentage / 100;
+
+            preview.style.transform = `scale(${scaleFactor})`;
+            zoomValue.textContent = `${Math.round(zoomPercentage)}%`;
+        }
+
+        function updatePreview() {
+            const svgCode = input.value.trim();
+
+            preview.innerHTML = '';
+            hideError();
+            
+            if (svgCode === '') {
+                placeholder.classList.remove('opacity-0', 'pointer-events-none');
+                
+                if (autoZoomToggle.checked) {
+                    setZoomValueAnimated(DEFAULT_ZOOM);
+                } else {
+                    applyZoom();
+                }
+                
+                demoContainer.classList.remove('opacity-0', 'pointer-events-none');
+                return;
+            }
+
+            placeholder.classList.add('opacity-0', 'pointer-events-none');
+            demoContainer.classList.add('opacity-0', 'pointer-events-none');
+
+
+            try {
+                if (!svgCode.startsWith('<svg') || !svgCode.endsWith('>')) {
+                    throw new Error("Does not look like a complete <svg> tag.");
+                }
+
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = svgCode;
+
+                const svgElement = tempDiv.querySelector('svg');
+
+                if (svgElement) {
+                    const hasScript = svgElement.querySelector('script');
+                    if (hasScript) {
+                        throw new Error("Scripts found. Script elements are blocked for safety.");
+                    }
+
+                    preview.appendChild(svgElement);
+                    
+                    if (autoZoomToggle.checked) {
+                        calculateAutoZoom();
+                    } else {
+                        applyZoom(); 
+                    }
+
+                } else {
+                    throw new Error("No valid SVG element found inside the code.");
+                }
+
+            } catch (error) {
+                console.error("SVG Rendering Error:", error);
+                showError();
+                placeholder.classList.remove('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        let debounceTimer;
+        function handleInput() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(updatePreview, 250);
+            
+            const svgCode = input.value.trim();
+            if (svgCode.length > 0) {
+                demoContainer.classList.add('opacity-0', 'pointer-events-none');
+            } else {
+                demoContainer.classList.remove('opacity-0', 'pointer-events-none');
+            }
+        }
+
+        function showError() {
+            errorMessage.classList.remove('opacity-0', 'pointer-events-none');
+        }
+
+        function hideError() {
+            errorMessage.classList.add('opacity-0', 'pointer-events-none');
+        }
+        
+        function loadDemoSvg(event) {
+            const button = event.currentTarget;
+            const svg = button.getAttribute('data-svg');
+            
+            input.value = svg;
+            handleInput(); 
+        }
+        
+        // --- Event Listeners ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            feather.replace();
+            
+            // Initial setup for Auto Zoom (Default ON)
+            autoZoomToggle.checked = true;
+            zoomSlider.value = DEFAULT_ZOOM; 
+            handleToggle();
+
+            updatePreview();
+            
+            window.addEventListener('resize', () => {
+                if (autoZoomToggle.checked) {
+                    calculateAutoZoom();
+                }
+            });
+
+            // Supabase Auth State Change Listener
+            supabase.auth.onAuthStateChange((event, session) => {
+                updateAuthUI(session?.user);
+                // Can log event and session for debugging if needed
+            });
+        });
+
+        // App Interaction Listeners
+        input.addEventListener('input', handleInput);
+
+        zoomSlider.addEventListener('input', () => {
+            if (autoZoomToggle.checked) {
+                autoZoomToggle.checked = false;
+                handleToggle(); 
+            }
+            applyZoom();
+        });
+
+        document.querySelectorAll('.demo-card').forEach(card => {
+            card.addEventListener('click', loadDemoSvg);
+        });
+        
+        // Settings Modal Listeners
+        autoZoomBtn.addEventListener('click', openSettingsModal);
+        closeModalBtn.addEventListener('click', closeSettingsModal);
+        closeModalFooterBtn.addEventListener('click', closeSettingsModal);
+        autoZoomToggle.addEventListener('change', handleToggle);
+
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                closeSettingsModal();
+            }
+        });
+        
+        // Auth Modal Listeners
+        authForm.addEventListener('submit', handleAuthFormSubmit);
+        closeAuthModalBtn.addEventListener('click', closeAuthModal);
+        authModal.addEventListener('click', (e) => {
+            if (e.target === authModal) {
+                closeAuthModal();
+            }
+        });
+    </script>
+
+</body>
+</html>
