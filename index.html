@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/feather-icons"></script>
     
-    <!-- FIX: Load Supabase via standard script tag to avoid module/environment issues -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
     <style>
@@ -37,7 +36,6 @@
             transition: opacity 0.3s ease-in-out;
         }
 
-        /* Custom styling for the range slider thumb to allow for smooth JS control */
         #zoom-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
@@ -59,6 +57,34 @@
             border: none;
             transition: background 0.15s ease, transform 0.15s ease;
         }
+
+        .auth-card-option {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .auth-card-option:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #6b7280;
+        }
+        .separator::before,
+        .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #d1d5db;
+        }
+        .separator:not(:empty)::before {
+            margin-right: .5em;
+        }
+        .separator:not(:empty)::after {
+            margin-left: .5em;
+        }
     </style>
 </head>
 <body>
@@ -72,9 +98,8 @@
                 SVG Live Previewer
             </h1>
             
-            <!-- Supabase Auth Status -->
             <div id="auth-status" class="flex items-center space-x-3">
-                <!-- Content injected by JS -->
+                
             </div>
         </div>
     </header>
@@ -144,7 +169,6 @@
             <div class="relative p-3 mb-4 bg-gray-100 rounded-lg shadow-inner"> 
                 
                 <div class="flex justify-end -mt-1 mb-2 relative group">
-                    <!-- Button to open modal -->
                     <button id="auto-zoom-btn" class="flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition cursor-pointer focus:outline-none" 
                             title="Open Automatic Zoom Settings">
                         
@@ -152,7 +176,6 @@
                         <span class="hover:underline">Automatically Zoom</span>
                     </button>
                     
-                    <!-- Custom Tooltip for Status -->
                     <div id="zoom-status-tooltip" class="absolute right-0 top-full mt-2 hidden group-hover:block w-48 bg-gray-800 text-white text-xs p-2 rounded-lg shadow-xl z-20 opacity-0 group-hover:opacity-100 transition duration-150 transform translate-y-2 group-hover:translate-y-0">
                         <p id="tooltip-status-text"></p>
                         <p class="mt-1 text-gray-300">Click to configure settings.</p>
@@ -189,7 +212,6 @@
     <div id="settings-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div id="settings-card" class="bg-white rounded-xl shadow-2xl w-full max-w-lg m-4 transform transition-all duration-300 scale-95">
             
-            <!-- Header -->
             <div class="p-6 border-b border-gray-200 flex items-center justify-between">
                 <h3 id="modal-title" class="text-xl font-bold text-gray-800 flex items-center">
                     <i data-feather="zoom-in" class="w-6 h-6 mr-2 text-indigo-600"></i>
@@ -200,10 +222,8 @@
                 </button>
             </div>
 
-            <!-- Body Content -->
             <div class="p-6">
                 
-                <!-- Toggle Control -->
                 <div class="flex items-center justify-between bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-sm">
                     <label for="auto-zoom-toggle" class="text-base font-semibold text-gray-700">Automatically Zoom</label>
                     
@@ -213,7 +233,6 @@
                     </label>
                 </div>
 
-                <!-- Description -->
                 <div class="mt-6 space-y-4 text-gray-600 text-sm">
                     <p>This setting controls whether the SVG preview scales automatically to ensure the entire graphic is visible within the preview box, even if its intrinsic dimensions are large or small.</p>
                     <p>When <strong>enabled</strong>, the zoom level will be calculated based on the SVG's <code>viewBox</code> and the container size, overriding the manual zoom slider. The slider will reflect the calculated zoom percentage.</p>
@@ -222,7 +241,6 @@
                 
             </div>
             
-            <!-- Footer / Action Button -->
             <div class="p-4 border-t border-gray-200 flex justify-end">
                 <button id="close-modal-footer-btn" class="px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150">
                     Close
@@ -235,51 +253,140 @@
     <div id="auth-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 transition-opacity duration-300 opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
         <div id="auth-card" class="bg-white rounded-xl shadow-2xl w-full max-w-sm m-4 transform transition-all duration-300 scale-95">
             
-            <!-- Header -->
             <div class="p-6 border-b border-gray-200 flex items-center justify-between">
                 <h3 id="auth-modal-title" class="text-xl font-bold text-gray-800 flex items-center">
                     <i data-feather="user" class="w-6 h-6 mr-2 text-indigo-600"></i>
-                    Sign In / Sign Up
+                    <span id="auth-modal-header-text">Get Started</span>
                 </h3>
                 <button id="close-auth-modal-btn" class="text-gray-400 hover:text-gray-600 focus:outline-none p-1 rounded-full hover:bg-gray-100 transition">
                     <i data-feather="x" class="w-6 h-6"></i>
                 </button>
             </div>
 
-            <!-- Body Content -->
-            <form id="auth-form" class="p-6 space-y-4">
-                <div class="space-y-1">
-                    <label for="email" class="text-sm font-medium text-gray-700">Email Address</label>
-                    <input type="email" id="email" required placeholder="you@example.com"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                <div class="space-y-1">
-                    <label for="password" class="text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" id="password" required placeholder="••••••••"
-                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                </div>
-                
-                <p id="auth-message" class="text-sm h-5 text-red-500"></p>
+            <div id="auth-body-content">
 
-                <div class="flex space-x-3 pt-2">
-                    <button type="submit" data-action="signin" id="sign-in-btn-modal"
-                            class="flex-1 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150">
-                        Sign In
+                <!-- 1. Initial Choice View (Default) -->
+                <div id="auth-choice-view" class="p-6 space-y-4">
+                    <p class="text-center text-gray-600 text-sm mb-6">Choose how you want to proceed:</p>
+                    
+                    <button id="show-signin-options-btn" class="auth-card-option w-full p-4 bg-white border-2 border-indigo-200 rounded-lg shadow-lg text-left hover:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-200">
+                        <div class="flex items-center space-x-3">
+                            <i data-feather="log-in" class="w-6 h-6 text-indigo-600"></i>
+                            <span class="text-lg font-semibold text-gray-800">Sign In</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1 ml-9">I already have an account.</p>
                     </button>
-                    <button type="submit" data-action="signup" id="sign-up-btn-modal"
-                            class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 font-medium rounded-lg shadow-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition duration-150">
-                        Sign Up
+
+                    <button id="show-signup-options-btn" class="auth-card-option w-full p-4 bg-white border-2 border-green-200 rounded-lg shadow-lg text-left hover:border-green-500 focus:outline-none focus:ring-4 focus:ring-green-200">
+                        <div class="flex items-center space-x-3">
+                            <i data-feather="user-plus" class="w-6 h-6 text-green-600"></i>
+                            <span class="text-lg font-semibold text-gray-800">Create Account</span>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-1 ml-9">I'm new here and want to sign up.</p>
                     </button>
                 </div>
-            </form>
+
+                <!-- 2. Sign In Options View -->
+                <div id="sign-in-options-view" class="p-6 space-y-4 hidden">
+                    <button id="show-email-signin-btn" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150">
+                        <i data-feather="mail" class="w-5 h-5 mr-3"></i>
+                        Sign in with Email
+                    </button>
+                    
+                    <div class="separator">
+                        <span class="px-2 text-xs font-semibold uppercase tracking-wider">Social Login</span>
+                    </div>
+                    
+                    <!-- GitHub Button (Updated to PNG) -->
+                    <button data-provider="github" class="social-signin-btn w-full flex justify-center items-center py-3 px-4 mb-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                        <img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" class="w-5 h-5 mr-3">
+                        Continue with GitHub
+                    </button>
+
+                    <button data-provider="figma" class="social-signin-btn w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg" alt="Figma Logo" class="w-5 h-5 mr-3">
+                        Continue with Figma
+                    </button>
+
+                    <button type="button" id="back-to-auth-choice-btn-2"
+                            class="w-full mt-4 text-sm text-gray-500 hover:text-indigo-600 transition">
+                        ← Back to Get Started
+                    </button>
+                </div>
+
+                <!-- 3. Sign Up Options View (Updated: Removed Google, Apple, Microsoft) -->
+                <div id="sign-up-options-view" class="p-6 space-y-4 hidden">
+                    <p class="text-center text-gray-600 text-sm mb-6 font-semibold">Choose a service to create your account:</p>
+                    
+                    <!-- GitHub Button (Updated to PNG and text) -->
+                    <button data-provider="github" class="social-signup-btn w-full flex justify-center items-center py-3 px-4 mb-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                        <img src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" alt="GitHub Logo" class="w-5 h-5 mr-3">
+                        Create account with GitHub
+                    </button>
+
+                    <!-- Figma Button (Updated text) -->
+                    <button data-provider="figma" class="social-signup-btn w-full flex justify-center items-center py-3 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition duration-150">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/3/33/Figma-logo.svg" alt="Figma Logo" class="w-5 h-5 mr-3">
+                        Create account with Figma
+                    </button>
+                    
+                    <div class="separator">
+                        <span class="px-2 text-xs font-semibold uppercase tracking-wider">Email</span>
+                    </div>
+
+                    <button id="show-email-signup-btn" class="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-150">
+                        <i data-feather="mail" class="w-5 h-5 mr-3"></i>
+                        Create account with Email
+                    </button>
+
+                    <button type="button" id="back-to-auth-choice-btn-3"
+                            class="w-full mt-4 text-sm text-gray-500 hover:text-indigo-600 transition">
+                        ← Back to Get Started
+                    </button>
+                </div>
+
+
+                <!-- 4. Email/Password Form View -->
+                <form id="auth-form" class="p-6 space-y-4 hidden">
+                    <div class="space-y-1">
+                        <label for="email" class="text-sm font-medium text-gray-700">Email Address</label>
+                        <input type="email" id="email" required placeholder="you@example.com"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div class="space-y-1">
+                        <label for="password" class="text-sm font-medium text-gray-700">Password</label>
+                        <input type="password" id="password" required placeholder="••••••••"
+                               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    
+                    <p id="auth-message" class="text-sm h-5 text-red-500"></p>
+
+                    <div class="flex space-x-3 pt-2">
+                        <!-- Sign In Button (Visible during Sign In view) -->
+                        <button type="submit" data-action="signin" id="sign-in-btn-modal"
+                                class="flex-1 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 hidden">
+                            Sign In
+                        </button>
+                        <!-- Sign Up Button (Visible during Sign Up view) -->
+                        <button type="submit" data-action="signup" id="sign-up-btn-modal"
+                                class="flex-1 px-4 py-2 bg-green-600 text-white font-medium rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition duration-150 hidden">
+                            Sign Up
+                        </button>
+                    </div>
+
+                    <button type="button" id="back-from-email-form"
+                            class="w-full mt-4 text-sm text-gray-500 hover:text-indigo-600 transition">
+                        ← Back
+                    </button>
+                </form>
+            </div>
             
         </div>
     </div>
 
 
     <script>
-        // --- Supabase Setup ---
-        // Accessing createClient from the global window.supabase object now that the library is loaded via standard script tag
+        
         if (!window.supabase) {
             console.error("Supabase library not loaded. Check the CDN script tag.");
         }
@@ -290,7 +397,6 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5a254bGtibXppdmZyb2pud3dlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNzkxNTMsImV4cCI6MjA4MDk1NTE1M30.WhqSyYCUEtSxrgVFI52J_QIlV92nuGMkGGbafX-B3vI';
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        // --- DOM Elements ---
         const input = document.getElementById('svg-input');
         const preview = document.getElementById('svg-preview');
         const placeholder = document.getElementById('placeholder');
@@ -300,7 +406,6 @@
         const zoomSlider = document.getElementById('zoom-slider');
         const zoomValue = document.getElementById('zoom-value');
         
-        // Settings Modal
         const settingsModal = document.getElementById('settings-modal');
         const settingsCard = document.getElementById('settings-card');
         const autoZoomBtn = document.getElementById('auto-zoom-btn');
@@ -309,28 +414,74 @@
         const autoZoomToggle = document.getElementById('auto-zoom-toggle');
         const tooltipStatusText = document.getElementById('tooltip-status-text');
 
-        // Auth Modal Elements
         const authStatus = document.getElementById('auth-status');
         const authModal = document.getElementById('auth-modal');
+        const authModalHeaderText = document.getElementById('auth-modal-header-text');
         const closeAuthModalBtn = document.getElementById('close-auth-modal-btn');
-        const authForm = document.getElementById('auth-form');
+        
+        const authChoiceView = document.getElementById('auth-choice-view');
+        const signInOptionsView = document.getElementById('sign-in-options-view');
+        const signUpOptionsView = document.getElementById('sign-up-options-view');
+        const authForm = document.getElementById('auth-form'); 
+
+        const showSigninOptionsBtn = document.getElementById('show-signin-options-btn');
+        const showSignupOptionsBtn = document.getElementById('show-signup-options-btn');
+        const showEmailSigninBtn = document.getElementById('show-email-signin-btn');
+        const showEmailSignupBtn = document.getElementById('show-email-signup-btn');
+        const backToAuthChoiceBtn2 = document.getElementById('back-to-auth-choice-btn-2');
+        const backToAuthChoiceBtn3 = document.getElementById('back-to-auth-choice-btn-3');
+        const backFromEmailFormBtn = document.getElementById('back-from-email-form');
+
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const authMessage = document.getElementById('auth-message');
+        const signInBtnModal = document.getElementById('sign-in-btn-modal');
+        const signUpBtnModal = document.getElementById('sign-up-btn-modal');
         
         const DEFAULT_ZOOM = 120;
         let isSigningIn = false;
-
-        // --- Utility Functions ---
+        let currentAuthView = 'choice';
 
         function showAuthMessage(message, isError = false) {
             authMessage.textContent = message;
             authMessage.className = isError ? 'text-sm h-5 text-red-500' : 'text-sm h-5 text-green-500';
         }
 
+        function showAuthView(view) {
+            currentAuthView = view;
+            
+            authForm.classList.add('hidden');
+            authChoiceView.classList.add('hidden');
+            signInOptionsView.classList.add('hidden');
+            signUpOptionsView.classList.add('hidden');
+
+            signInBtnModal.classList.add('hidden');
+            signUpBtnModal.classList.add('hidden');
+            authMessage.textContent = '';
+            
+            if (view === 'choice') {
+                authModalHeaderText.textContent = 'Get Started';
+                authChoiceView.classList.remove('hidden');
+            } else if (view === 'signin-options') {
+                authModalHeaderText.textContent = 'Sign In';
+                signInOptionsView.classList.remove('hidden');
+            } else if (view === 'signup-options') {
+                authModalHeaderText.textContent = 'Create Account';
+                signUpOptionsView.classList.remove('hidden');
+            } else if (view === 'email-signin') {
+                authModalHeaderText.textContent = 'Sign In with Email';
+                authForm.classList.remove('hidden');
+                signInBtnModal.classList.remove('hidden');
+            } else if (view === 'email-signup') {
+                authModalHeaderText.textContent = 'Create Account with Email';
+                authForm.classList.remove('hidden');
+                signUpBtnModal.classList.remove('hidden');
+            }
+        }
+
         function openAuthModal() {
+            showAuthView('choice'); 
             authModal.classList.remove('opacity-0', 'pointer-events-none');
-            authMessage.textContent = ''; // Clear previous messages
             emailInput.value = '';
             passwordInput.value = '';
         }
@@ -339,13 +490,12 @@
             authModal.classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // --- Supabase Auth Functions ---
-
         async function handleAuthFormSubmit(event) {
             event.preventDefault();
+            
+            const action = currentAuthView === 'email-signin' ? 'signin' : 'signup';
             if (isSigningIn) return;
 
-            const action = event.submitter.getAttribute('data-action');
             const email = emailInput.value;
             const password = passwordInput.value;
             
@@ -362,7 +512,15 @@
                 if (action === 'signup') {
                     response = await supabase.auth.signUp({ email, password });
                     if (response.error) throw response.error;
-                    showAuthMessage("Check your email for the confirmation link!", false);
+                    
+                    if (response.data.session) {
+                        showAuthMessage("Sign up successful and you are logged in!", false);
+                        setTimeout(closeAuthModal, 1000); 
+                    } else {
+                        showAuthMessage("Sign up successful. Please check your email to confirm.", false);
+                        showAuthView('email-signin'); 
+                    }
+
                 } else if (action === 'signin') {
                     response = await supabase.auth.signInWithPassword({ email, password });
                     if (response.error) throw response.error;
@@ -375,6 +533,45 @@
                 isSigningIn = false;
             }
         }
+
+        async function handleSocialSignIn(provider) {
+            if (isSigningIn) return;
+
+            // Supabase only officially supports a subset of providers.
+            // For the sake of the UI, we'll allow all, but only attempt the Supabase call for supported ones.
+            const supportedProviders = ['github', 'figma']; 
+            
+            isSigningIn = true;
+            const providerName = provider.charAt(0).toUpperCase() + provider.slice(1);
+            showAuthMessage(`Initiating Authentication with ${providerName}...`, false);
+
+            if (!supportedProviders.includes(provider)) {
+                showAuthMessage(`'${providerName}' is for UI demonstration. Supabase sign-in not configured for this provider in this demo.`, true);
+                isSigningIn = false;
+                return;
+            }
+
+            try {
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: provider,
+                    options: {
+                        redirectTo: window.location.origin, 
+                    },
+                });
+
+                if (error) {
+                    throw error;
+                }
+
+            } catch (error) {
+                showAuthMessage(`Authentication failed: ${error.message}`, true);
+                console.error("Social Auth Error:", error);
+            } finally {
+                // Note: The app will typically redirect after a successful social sign-in, 
+                // so the finally block mainly handles local errors.
+                isSigningIn = false;
+            }
+        }
         
         async function handleSignOut() {
             try {
@@ -382,23 +579,19 @@
                 if (error) throw error;
             } catch (error) {
                 console.error("Sign Out Error:", error.message);
-                // In a real app, you might show a persistent error message here
             }
         }
 
         function updateAuthUI(user) {
-            authStatus.innerHTML = ''; // Clear existing content
+            authStatus.innerHTML = ''; 
 
             if (user) {
-                // User is signed in
                 const email = user.email || 'User';
                 
-                // User Info Display
                 const userInfo = document.createElement('span');
                 userInfo.className = 'text-sm font-medium text-gray-600 truncate max-w-xs sm:max-w-none';
                 userInfo.textContent = `Signed in as: ${email}`;
 
-                // Sign Out Button
                 const signOutBtn = document.createElement('button');
                 signOutBtn.className = 'flex items-center px-3 py-1 bg-red-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2';
                 signOutBtn.innerHTML = '<i data-feather="log-out" class="w-4 h-4 mr-1"></i>Sign Out';
@@ -408,7 +601,6 @@
                 authStatus.appendChild(signOutBtn);
                 
             } else {
-                // User is signed out
                 const signInBtn = document.createElement('button');
                 signInBtn.className = 'flex items-center px-3 py-1 bg-indigo-500 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-indigo-600 transition focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2';
                 signInBtn.innerHTML = '<i data-feather="log-in" class="w-4 h-4 mr-1"></i>Sign In';
@@ -417,12 +609,9 @@
                 authStatus.appendChild(signInBtn);
             }
 
-            // Re-render Feather icons in the newly created elements
             feather.replace();
         }
 
-        // --- Animation Utility ---
-        
         function setZoomValueAnimated(targetZoom) {
             targetZoom = Math.min(1000, Math.max(50, Math.round(targetZoom)));
 
@@ -451,8 +640,6 @@
             requestAnimationFrame(step);
         }
 
-        // --- Settings Modal Functions ---
-        
         function openSettingsModal() {
             if (!settingsModal || !settingsCard) return;
             
@@ -480,8 +667,6 @@
                 applyZoom(); 
             }
         }
-        
-        // --- Core Preview Functions ---
         
         function calculateAutoZoom() {
             if (!autoZoomToggle.checked) return;
@@ -625,12 +810,9 @@
             handleInput(); 
         }
         
-        // --- Event Listeners ---
-        
         document.addEventListener('DOMContentLoaded', () => {
             feather.replace();
             
-            // Initial setup for Auto Zoom (Default ON)
             autoZoomToggle.checked = true;
             zoomSlider.value = DEFAULT_ZOOM; 
             handleToggle();
@@ -643,14 +825,24 @@
                 }
             });
 
-            // Supabase Auth State Change Listener
             supabase.auth.onAuthStateChange((event, session) => {
                 updateAuthUI(session?.user);
-                // Can log event and session for debugging if needed
+                if (session) {
+                    closeAuthModal();
+                }
+            });
+            
+            // Social Sign-in Buttons for the Sign In View
+            document.querySelectorAll('.social-signin-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleSocialSignIn(btn.getAttribute('data-provider')));
+            });
+
+            // Social Sign-up Buttons for the Create Account View
+            document.querySelectorAll('.social-signup-btn').forEach(btn => {
+                btn.addEventListener('click', () => handleSocialSignIn(btn.getAttribute('data-provider')));
             });
         });
 
-        // App Interaction Listeners
         input.addEventListener('input', handleInput);
 
         zoomSlider.addEventListener('input', () => {
@@ -683,6 +875,24 @@
         authModal.addEventListener('click', (e) => {
             if (e.target === authModal) {
                 closeAuthModal();
+            }
+        });
+
+        // Auth Navigation Listeners
+        showSigninOptionsBtn.addEventListener('click', () => showAuthView('signin-options'));
+        showSignupOptionsBtn.addEventListener('click', () => showAuthView('signup-options')); 
+        
+        showEmailSigninBtn.addEventListener('click', () => showAuthView('email-signin'));
+        showEmailSignupBtn.addEventListener('click', () => showAuthView('email-signup'));
+        
+        backToAuthChoiceBtn2.addEventListener('click', () => showAuthView('choice'));
+        backToAuthChoiceBtn3.addEventListener('click', () => showAuthView('choice')); 
+
+        backFromEmailFormBtn.addEventListener('click', () => {
+            if (currentAuthView === 'email-signup') {
+                showAuthView('signup-options');
+            } else if (currentAuthView === 'email-signin') {
+                showAuthView('signin-options');
             }
         });
     </script>
